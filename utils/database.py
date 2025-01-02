@@ -61,3 +61,11 @@ class Database:
         self.cursor.execute("SELECT book_id, title, author, author_lf, additional_authors, isbn, isbn13, my_rating, average_rating, publisher, binding, number_of_pages, year_published, original_publication_year, date_read, date_added, bookshelves, bookshelves_with_positions, exclusive_shelf, my_review, spoiler, private_notes, read_count, owned_copies, cover FROM books")
         rows = self.cursor.fetchall()
         return [{"book_id": row[0], "title": row[1], "author": row[2], "author_lf": row[3], "additional_authors": row[4], "isbn": row[5], "isbn13": row[6], "my_rating": row[7], "average_rating": row[8], "publisher": row[9], "binding": row[10], "number_of_pages": row[11], "year_published": row[12], "original_publication_year": row[13], "date_read": row[14], "date_added": row[15], "bookshelves": row[16], "bookshelves_with_positions": row[17], "exclusive_shelf": row[18], "my_review": row[19], "spoiler": row[20], "private_notes": row[21], "read_count": row[22], "owned_copies": row[23], "cover": row[24]} for row in rows]
+    
+    def get_current_book(self):
+        """Get the current book being read from the database."""
+        self.cursor.execute("SELECT book_id, title, author, author_lf, additional_authors, isbn, isbn13, my_rating, average_rating, publisher, binding, number_of_pages, year_published, original_publication_year, date_read, date_added, bookshelves, bookshelves_with_positions, exclusive_shelf, my_review, spoiler, private_notes, read_count, owned_copies, cover FROM books WHERE exclusive_shelf = 'currently-reading'")
+        row = self.cursor.fetchone()
+        if row:
+            return {"book_id": row[0], "title": row[1], "author": row[2], "author_lf": row[3], "additional_authors": row[4], "isbn": row[5], "isbn13": row[6], "my_rating": row[7], "average_rating": row[8], "publisher": row[9], "binding": row[10], "number_of_pages": row[11], "year_published": row[12], "original_publication_year": row[13], "date_read": row[14], "date_added": row[15], "bookshelves": row[16], "bookshelves_with_positions": row[17], "exclusive_shelf": row[18], "my_review": row[19], "spoiler": row[20], "private_notes": row[21], "read_count": row[22], "owned_copies": row[23], "cover": row[24]}
+        return None

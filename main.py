@@ -89,12 +89,12 @@ class BookshelfApp:
         self.main_frame = tk.Frame(self.root, bg="white")
         self.main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Initialize panes
-        self.left_pane = LeftPane(self.main_frame)
-        self.middle_pane = MiddlePane(self.main_frame)
-        
         # Initialize database
         self.db = Database()
+        
+        # Initialize panes
+        self.left_pane = LeftPane(self.main_frame, self.db)
+        self.middle_pane = MiddlePane(self.main_frame)
         
         # Books data
         self.books = []
