@@ -95,6 +95,7 @@ class BookshelfApp:
         # Initialize panes
         self.left_pane = LeftPane(self.main_frame, self.db)
         self.middle_pane = MiddlePane(self.main_frame)
+        self.middle_pane.db = self.db  # Pass the db instance to MiddlePane
         
         # Books data
         self.books = []
@@ -105,7 +106,7 @@ class BookshelfApp:
         import_goodreads_csv(self.root, self.db, self.books, self.middle_pane)
     
     def search_books(self):
-        search_books(self.search_entry, self.books, self.middle_pane)
+        search_books(self.search_entry, self.books, self.middle_pane, self.db)
     
     def load_books(self):
         self.books = self.db.load_books()

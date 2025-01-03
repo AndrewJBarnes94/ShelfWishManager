@@ -1,8 +1,10 @@
 import requests
 import tkinter as tk
 from tkinter import Toplevel, Listbox, messagebox, ttk
+from io import BytesIO
+import uuid
 
-def search_books(search_entry, books, middle_pane):
+def search_books(search_entry, books, middle_pane, db):
     """Search books using OpenLibrary API and show results in a new window."""
     query = search_entry.get().strip()
     if not query:
@@ -49,7 +51,36 @@ def search_books(search_entry, books, middle_pane):
                 cover_response = requests.get(cover_url)
                 cover_image = cover_response.content
             
-            books.append({"title": title, "author": author, "cover": cover_image})
+            new_book = {
+                "book_id": str(uuid.uuid4()),  # Generate a unique book_id
+                "title": title,
+                "author": author,
+                "author_lf": None,
+                "additional_authors": None,
+                "isbn": None,
+                "isbn13": None,
+                "my_rating": None,
+                "average_rating": None,
+                "publisher": None,
+                "binding": None,
+                "number_of_pages": None,
+                "year_published": None,
+                "original_publication_year": None,
+                "date_read": None,
+                "date_added": None,
+                "bookshelves": None,
+                "bookshelves_with_positions": None,
+                "exclusive_shelf": None,
+                "my_review": None,
+                "spoiler": None,
+                "private_notes": None,
+                "read_count": None,
+                "owned_copies": None,
+                "cover": cover_image
+            }
+            
+            books.append(new_book)
+            db.save_books(books)
             middle_pane.render_bookshelf(books)
             search_results_window.destroy()
         

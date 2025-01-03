@@ -30,6 +30,13 @@ class MiddlePane:
         
         # Bind the configure event to handle resizing
         self.canvas.bind("<Configure>", self.on_resize)
+        
+        # Bind right-click event to show context menu
+        self.canvas.bind("<Button-3>", self.show_context_menu)
+        
+        # Create context menu
+        self.context_menu = tk.Menu(self.canvas, tearoff=0)
+        self.context_menu.add_command(label="Delete", command=self.delete_book)
     
     def on_resize(self, event):
         """Handle the resizing of the canvas."""
@@ -68,6 +75,7 @@ class MiddlePane:
         end_index = min(start_index + self.books_per_page, len(self.books))
         book_width = max((canvas_width - 100) // 15, 1)
         book_height = max(shelf_height - 20, 1)
+        self.book_positions = []  # Store book positions for context menu
         for index, book in enumerate(self.books[start_index:end_index]):
             x0 = 60 + (index % 15) * book_width
             y0 = (index // 15) * shelf_height + 30
@@ -89,11 +97,29 @@ class MiddlePane:
                 # Draw book
                 self.canvas.create_rectangle(x0, y0, x1, y1, fill="lightblue", outline="black")
                 self.canvas.create_text((x0 + x1) // 2, (y0 + y1) // 2, text=book["title"], width=book_width - 20)
+            
+            # Store book position and details
+            self.book_positions.append((x0, y0, x1, y1, book))
         
         # Update pagination controls
         self.page_label.config(text=f"Page {self.current_page + 1} of {self.total_pages}")
         self.prev_button.config(state=tk.NORMAL if self.current_page > 0 else tk.DISABLED)
         self.next_button.config(state=tk.NORMAL if self.current_page < self.total_pages - 1 else tk.DISABLED)
+    
+    def show_context_menu(self, event):
+        """Show context menu on right-click."""
+        self.context_menu.post(event.x_root, event.y_root)
+        self.context_menu.event_x = event.x
+        self.context_menu.event_y = event.y
+    
+    def delete_book(self):
+        """Delete the selected book."""
+        for x0, y0, x1, y1, book in self.book_positions:
+            if x0 <= self.context_menu.event_x <= x1 and y0 <= self.context_menu.event_y <= y1:
+                self.books.remove(book)
+                self.db.delete_book(book["book_id"])
+                self.render_bookshelf(self.books)
+                break
     
     def prev_page(self):
         """Go to the previous page."""

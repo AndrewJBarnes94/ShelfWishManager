@@ -11,7 +11,7 @@ class Database:
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS books (
                 id INTEGER PRIMARY KEY,
-                book_id INTEGER,
+                book_id TEXT,
                 title TEXT,
                 author TEXT,
                 author_lf TEXT,
@@ -69,3 +69,8 @@ class Database:
         if row:
             return {"book_id": row[0], "title": row[1], "author": row[2], "author_lf": row[3], "additional_authors": row[4], "isbn": row[5], "isbn13": row[6], "my_rating": row[7], "average_rating": row[8], "publisher": row[9], "binding": row[10], "number_of_pages": row[11], "year_published": row[12], "original_publication_year": row[13], "date_read": row[14], "date_added": row[15], "bookshelves": row[16], "bookshelves_with_positions": row[17], "exclusive_shelf": row[18], "my_review": row[19], "spoiler": row[20], "private_notes": row[21], "read_count": row[22], "owned_copies": row[23], "cover": row[24]}
         return None
+    
+    def delete_book(self, book_id):
+        """Delete a book from the SQLite database by its ID."""
+        self.cursor.execute("DELETE FROM books WHERE book_id = ?", (book_id,))
+        self.conn.commit()
