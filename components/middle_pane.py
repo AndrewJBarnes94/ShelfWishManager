@@ -117,7 +117,7 @@ class MiddlePane:
         for x0, y0, x1, y1, book in self.book_positions:
             if x0 <= self.context_menu.event_x <= x1 and y0 <= self.context_menu.event_y <= y1:
                 self.books.remove(book)
-                self.db.delete_book(book["id"])
+                self.db.delete_book(book["title"])
                 self.render_bookshelf(self.books)
                 break
     

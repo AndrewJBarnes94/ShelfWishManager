@@ -45,6 +45,11 @@ def search_books(search_entry, books, middle_pane, db):
             book_info = book_details[book_id]
             title, author, cover_url = book_info["title"], book_info["author"], book_info["cover_url"]
             
+            # Check for duplicates
+            if any(book['title'] == title and book['author'] == author for book in books):
+                messagebox.showwarning("Duplicate Entry", f"The book '{title}' by {author} is already in your collection.")
+                return
+            
             # Fetch and save cover image
             cover_image = None
             if cover_url:
