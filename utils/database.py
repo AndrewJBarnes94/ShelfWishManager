@@ -42,17 +42,16 @@ class Database:
     
     def save_books(self, books):
         """Save books to the SQLite database."""
-        self.cursor.execute("DELETE FROM books")
         for book in books:
             self.cursor.execute("""
-                INSERT INTO books (
-                    book_id, title, author, author_lf, additional_authors, isbn, isbn13, my_rating, average_rating,
+                INSERT OR REPLACE INTO books (
+                    id, book_id, title, author, author_lf, additional_authors, isbn, isbn13, my_rating, average_rating,
                     publisher, binding, number_of_pages, year_published, original_publication_year, date_read, date_added,
                     bookshelves, bookshelves_with_positions, exclusive_shelf, my_review, spoiler, private_notes, read_count,
                     owned_copies, cover
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                book["book_id"], book["title"], book["author"], book["author_lf"], book["additional_authors"], book["isbn"], book["isbn13"], book["my_rating"], book["average_rating"], book["publisher"], book["binding"], book["number_of_pages"], book["year_published"], book["original_publication_year"], book["date_read"], book["date_added"], book["bookshelves"], book["bookshelves_with_positions"], book["exclusive_shelf"], book["my_review"], book["spoiler"], book["private_notes"], book["read_count"], book["owned_copies"], book["cover"]
+                book.get("id"), book["book_id"], book["title"], book["author"], book["author_lf"], book["additional_authors"], book["isbn"], book["isbn13"], book["my_rating"], book["average_rating"], book["publisher"], book["binding"], book["number_of_pages"], book["year_published"], book["original_publication_year"], book["date_read"], book["date_added"], book["bookshelves"], book["bookshelves_with_positions"], book["exclusive_shelf"], book["my_review"], book["spoiler"], book["private_notes"], book["read_count"], book["owned_copies"], book["cover"]
             ))
         self.conn.commit()
     
