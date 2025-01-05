@@ -1,4 +1,7 @@
 import sqlite3
+import bcrypt
+import secrets
+import datetime
 
 class Database:
     def __init__(self):
@@ -38,6 +41,24 @@ class Database:
                 cover BLOB
             )
         """)
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY,
+                username TEXT UNIQUE,
+                email TEXT UNIQUE,
+                password_hash TEXT,
+                temp_token TEXT
+            )
+        """)
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS password_resets (
+                id INTEGER PRIMARY KEY,
+                user_id INTEGER,
+                token TEXT,
+                expires_at DATETIME,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        """)
         self.conn.commit()
     
     def save_books(self, books):
@@ -73,3 +94,58 @@ class Database:
         """Delete a book from the SQLite database by its ID."""
         self.cursor.execute("DELETE FROM books WHERE id = ?", (id,))
         self.conn.commit()
+    
+    def create_user(self, username, email, password):
+        """Create a new user with a hashed password."""
+        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        self.cursor.execute("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)", (username, email, password_hash))
+        self.conn.commit()
+    
+    def authenticate_user(self, username, password):
+        """Authenticate a user by checking the hashed password or temporary token."""
+        self.cursor.execute("SELECT id, password_hash, temp_token FROM users WHERE username = ?", (username,))
+        row = self.cursor.fetchone()
+        if row:
+            user_id, password_hash, temp_token = row
+            if bcrypt.checkpw(password.encode('utf-8'), password_hash):
+                return user_id, False  # Regular login
+            elif temp_token and temp_token == password:
+                self.cursor.execute("UPDATE users SET temp_token = NULL WHERE id = ?", (user_id,))
+                self.conn.commit()
+                return user_id, True  # Temporary token login
+        return None, False
+    
+    def get_user_by_email(self, email):
+        """Get a user by their email address."""
+        self.cursor.execute("SELECT id, username FROM users WHERE email = ?", (email,))
+        row = self.cursor.fetchone()
+        return {"id": row[0], "username": row[1]} if row else None
+    
+    def create_password_reset_token(self, user_id):
+        """Create a password reset token for a user."""
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.datetime.now() + datetime.timedelta(hours=1)  # Token expires in 1 hour
+        self.cursor.execute("INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)", (user_id, token, expires_at))
+        self.conn.commit()
+        return token
+    
+    def verify_password_reset_token(self, token):
+        """Verify a password reset token."""
+        self.cursor.execute("SELECT user_id FROM password_resets WHERE token = ? AND expires_at > ?", (token, datetime.datetime.now()))
+        row = self.cursor.fetchone()
+        return row[0] if row else None
+    
+    def reset_password(self, user_id, new_password):
+        """Reset a user's password."""
+        password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+        self.cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id))
+        self.conn.commit()
+        self.cursor.execute("DELETE FROM password_resets WHERE user_id = ?", (user_id,))
+        self.conn.commit()
+    
+    def create_temp_token(self, user_id):
+        """Create a temporary token for one-time login."""
+        temp_token = secrets.token_urlsafe(16)
+        self.cursor.execute("UPDATE users SET temp_token = ? WHERE id = ?", (temp_token, user_id))
+        self.conn.commit()
+        return temp_token
