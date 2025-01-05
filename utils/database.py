@@ -14,6 +14,7 @@ class Database:
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS books (
                 id INTEGER PRIMARY KEY,
+                user_id INTEGER,
                 book_id TEXT,
                 title TEXT,
                 author TEXT,
@@ -38,7 +39,8 @@ class Database:
                 private_notes TEXT,
                 read_count INTEGER,
                 owned_copies INTEGER,
-                cover BLOB
+                cover BLOB,
+                FOREIGN KEY(user_id) REFERENCES users(id)
             )
         """)
         self.cursor.execute("""
@@ -66,28 +68,28 @@ class Database:
         for book in books:
             self.cursor.execute("""
                 INSERT OR REPLACE INTO books (
-                    id, book_id, title, author, author_lf, additional_authors, isbn, isbn13, my_rating, average_rating,
+                    id, user_id, book_id, title, author, author_lf, additional_authors, isbn, isbn13, my_rating, average_rating,
                     publisher, binding, number_of_pages, year_published, original_publication_year, date_read, date_added,
                     bookshelves, bookshelves_with_positions, exclusive_shelf, my_review, spoiler, private_notes, read_count,
                     owned_copies, cover
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                book.get("id"), book["book_id"], book["title"], book["author"], book["author_lf"], book["additional_authors"], book["isbn"], book["isbn13"], book["my_rating"], book["average_rating"], book["publisher"], book["binding"], book["number_of_pages"], book["year_published"], book["original_publication_year"], book["date_read"], book["date_added"], book["bookshelves"], book["bookshelves_with_positions"], book["exclusive_shelf"], book["my_review"], book["spoiler"], book["private_notes"], book["read_count"], book["owned_copies"], book["cover"]
+                book.get("id"), book["user_id"], book["book_id"], book["title"], book["author"], book["author_lf"], book["additional_authors"], book["isbn"], book["isbn13"], book["my_rating"], book["average_rating"], book["publisher"], book["binding"], book["number_of_pages"], book["year_published"], book["original_publication_year"], book["date_read"], book["date_added"], book["bookshelves"], book["bookshelves_with_positions"], book["exclusive_shelf"], book["my_review"], book["spoiler"], book["private_notes"], book["read_count"], book["owned_copies"], book["cover"]
             ))
         self.conn.commit()
     
-    def load_books(self):
-        """Load books from the SQLite database."""
-        self.cursor.execute("SELECT id, book_id, title, author, author_lf, additional_authors, isbn, isbn13, my_rating, average_rating, publisher, binding, number_of_pages, year_published, original_publication_year, date_read, date_added, bookshelves, bookshelves_with_positions, exclusive_shelf, my_review, spoiler, private_notes, read_count, owned_copies, cover FROM books")
+    def load_books(self, user_id):
+        """Load books from the SQLite database for a specific user."""
+        self.cursor.execute("SELECT id, user_id, book_id, title, author, author_lf, additional_authors, isbn, isbn13, my_rating, average_rating, publisher, binding, number_of_pages, year_published, original_publication_year, date_read, date_added, bookshelves, bookshelves_with_positions, exclusive_shelf, my_review, spoiler, private_notes, read_count, owned_copies, cover FROM books WHERE user_id = ?", (user_id,))
         rows = self.cursor.fetchall()
-        return [{"id": row[0], "book_id": row[1], "title": row[2], "author": row[3], "author_lf": row[4], "additional_authors": row[5], "isbn": row[6], "isbn13": row[7], "my_rating": row[8], "average_rating": row[9], "publisher": row[10], "binding": row[11], "number_of_pages": row[12], "year_published": row[13], "original_publication_year": row[14], "date_read": row[15], "date_added": row[16], "bookshelves": row[17], "bookshelves_with_positions": row[18], "exclusive_shelf": row[19], "my_review": row[20], "spoiler": row[21], "private_notes": row[22], "read_count": row[23], "owned_copies": row[24], "cover": row[25]} for row in rows]
+        return [{"id": row[0], "user_id": row[1], "book_id": row[2], "title": row[3], "author": row[4], "author_lf": row[5], "additional_authors": row[6], "isbn": row[7], "isbn13": row[8], "my_rating": row[9], "average_rating": row[10], "publisher": row[11], "binding": row[12], "number_of_pages": row[13], "year_published": row[14], "original_publication_year": row[15], "date_read": row[16], "date_added": row[17], "bookshelves": row[18], "bookshelves_with_positions": row[19], "exclusive_shelf": row[20], "my_review": row[21], "spoiler": row[22], "private_notes": row[23], "read_count": row[24], "owned_copies": row[25], "cover": row[26]} for row in rows]
     
-    def get_current_book(self):
-        """Get the current book being read from the database."""
-        self.cursor.execute("SELECT id, book_id, title, author, author_lf, additional_authors, isbn, isbn13, my_rating, average_rating, publisher, binding, number_of_pages, year_published, original_publication_year, date_read, date_added, bookshelves, bookshelves_with_positions, exclusive_shelf, my_review, spoiler, private_notes, read_count, owned_copies, cover FROM books WHERE exclusive_shelf = 'currently-reading'")
+    def get_current_book(self, user_id):
+        """Get the current book being read from the database for a specific user."""
+        self.cursor.execute("SELECT id, user_id, book_id, title, author, author_lf, additional_authors, isbn, isbn13, my_rating, average_rating, publisher, binding, number_of_pages, year_published, original_publication_year, date_read, date_added, bookshelves, bookshelves_with_positions, exclusive_shelf, my_review, spoiler, private_notes, read_count, owned_copies, cover FROM books WHERE user_id = ? AND exclusive_shelf = 'currently-reading'", (user_id,))
         row = self.cursor.fetchone()
         if row:
-            return {"id": row[0], "book_id": row[1], "title": row[2], "author": row[3], "author_lf": row[4], "additional_authors": row[5], "isbn": row[6], "isbn13": row[7], "my_rating": row[8], "average_rating": row[9], "publisher": row[10], "binding": row[11], "number_of_pages": row[12], "year_published": row[13], "original_publication_year": row[14], "date_read": row[15], "date_added": row[16], "bookshelves": row[17], "bookshelves_with_positions": row[18], "exclusive_shelf": row[19], "my_review": row[20], "spoiler": row[21], "private_notes": row[22], "read_count": row[23], "owned_copies": row[24], "cover": row[25]}
+            return {"id": row[0], "user_id": row[1], "book_id": row[2], "title": row[3], "author": row[4], "author_lf": row[5], "additional_authors": row[6], "isbn": row[7], "isbn13": row[8], "my_rating": row[9], "average_rating": row[10], "publisher": row[11], "binding": row[12], "number_of_pages": row[13], "year_published": row[14], "original_publication_year": row[15], "date_read": row[16], "date_added": row[17], "bookshelves": row[18], "bookshelves_with_positions": row[19], "exclusive_shelf": row[20], "my_review": row[21], "spoiler": row[22], "private_notes": row[23], "read_count": row[24], "owned_copies": row[25], "cover": row[26]}
         return None
     
     def delete_book(self, id):

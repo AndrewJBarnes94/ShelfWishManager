@@ -7,7 +7,7 @@ import logging
 import re
 
 class LeftPane:
-    def __init__(self, parent, db):
+    def __init__(self, parent, db, user_id):
         self.frame = tk.Frame(parent, bg="white")
         self.frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
         
@@ -61,11 +61,12 @@ class LeftPane:
         
         # Load current book
         self.db = db
+        self.user_id = user_id
         self.load_current_book()
     
     def load_current_book(self):
         """Load the current book being read from the database."""
-        current_book = self.db.get_current_book()
+        current_book = self.db.get_current_book(self.user_id)
         if current_book:
             title = current_book["title"]
             match = re.match(r"^(.*?)(\s*\(.*\))?$", title)

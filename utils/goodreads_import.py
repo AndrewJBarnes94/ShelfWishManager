@@ -74,7 +74,7 @@ def find_cover_image(isbn, isbn13, title, author):
             logging.error(f"Failed to fetch cover for {title} using OpenLibrary with query: {query}: {e}")
     return None
 
-def import_goodreads_csv(root, db, books, middle_pane):
+def import_goodreads_csv(root, db, books, middle_pane, user_id):
     """Import books from a Goodreads CSV file."""
     file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
     if not file_path:
@@ -136,6 +136,7 @@ def import_goodreads_csv(root, db, books, middle_pane):
                     continue
                 
                 books.append({
+                    "user_id": user_id,  # Include user_id
                     "book_id": book_id,
                     "title": title,
                     "author": author,

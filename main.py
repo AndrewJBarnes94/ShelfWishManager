@@ -2,212 +2,21 @@ import tkinter as tk
 from tkinter import ttk, messagebox, PhotoImage
 import os
 import logging
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from components.left_pane import LeftPane
 from components.middle_pane import MiddlePane
 from utils.database import Database
 from utils.goodreads_import import import_goodreads_csv
 from utils.search_books import search_books
+from forms.login_form import LoginForm
+from forms.create_account_form import CreateAccountForm
+from forms.recover_password_form import RecoverPasswordForm
+from forms.reset_password_form import ResetPasswordForm
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[
     logging.FileHandler("bookshelf_app.log"),
     logging.StreamHandler()
 ])
-
-class LoginForm:
-    def __init__(self, root, on_login_success):
-        self.root = root
-        self.on_login_success = on_login_success
-        self.db = Database()
-        self.root.title("Login")
-        
-        self.frame = tk.Frame(root, padx=10, pady=10)
-        self.frame.pack(padx=10, pady=10)
-        
-        self.username_label = tk.Label(self.frame, text="Username:")
-        self.username_label.grid(row=0, column=0, pady=5)
-        self.username_entry = ttk.Entry(self.frame)
-        self.username_entry.grid(row=0, column=1, pady=5)
-        
-        self.password_label = tk.Label(self.frame, text="Password:")
-        self.password_label.grid(row=1, column=0, pady=5)
-        self.password_entry = ttk.Entry(self.frame, show="*")
-        self.password_entry.grid(row=1, column=1, pady=5)
-        
-        self.login_button = ttk.Button(self.frame, text="Login", command=self.check_credentials)
-        self.login_button.grid(row=2, columnspan=2, pady=10)
-        
-        self.create_account_button = ttk.Button(self.frame, text="Create Account", command=self.create_account)
-        self.create_account_button.grid(row=3, columnspan=2, pady=5)
-        
-        self.recover_password_button = ttk.Button(self.frame, text="Recover Password", command=self.recover_password)
-        self.recover_password_button.grid(row=4, columnspan=2, pady=5)
-    
-    def check_credentials(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get()
-        
-        user_id, is_temp_token = self.db.authenticate_user(username, password)
-        if user_id:
-            if is_temp_token:
-                self.on_temp_token_login(user_id)
-            else:
-                self.on_login_success(user_id)
-        else:
-            messagebox.showerror("Login Failed", "Invalid username or password")
-    
-    def create_account(self):
-        CreateAccountForm(self.root, self.db)
-    
-    def recover_password(self):
-        RecoverPasswordForm(self.root, self.db)
-    
-    def on_temp_token_login(self, user_id):
-        ResetPasswordForm(self.root, self.db, user_id)
-
-class CreateAccountForm:
-    def __init__(self, root, db):
-        self.root = root
-        self.db = db
-        self.window = tk.Toplevel(root)
-        self.window.title("Create Account")
-        
-        self.frame = tk.Frame(self.window, padx=10, pady=10)
-        self.frame.pack(padx=10, pady=10)
-        
-        self.username_label = tk.Label(self.frame, text="Username:")
-        self.username_label.grid(row=0, column=0, pady=5)
-        self.username_entry = ttk.Entry(self.frame)
-        self.username_entry.grid(row=0, column=1, pady=5)
-        
-        self.email_label = tk.Label(self.frame, text="Email:")
-        self.email_label.grid(row=1, column=0, pady=5)
-        self.email_entry = ttk.Entry(self.frame)
-        self.email_entry.grid(row=1, column=1, pady=5)
-        
-        self.password_label = tk.Label(self.frame, text="Password:")
-        self.password_label.grid(row=2, column=0, pady=5)
-        self.password_entry = ttk.Entry(self.frame, show="*")
-        self.password_entry.grid(row=2, column=1, pady=5)
-        
-        self.create_button = ttk.Button(self.frame, text="Create Account", command=self.create_account)
-        self.create_button.grid(row=3, columnspan=2, pady=10)
-    
-    def create_account(self):
-        username = self.username_entry.get()
-        email = self.email_entry.get()
-        password = self.password_entry.get()
-        
-        if not username or not email or not password:
-            messagebox.showerror("Error", "All fields are required")
-            return
-        
-        try:
-            self.db.create_user(username, email, password)
-            messagebox.showinfo("Success", "Account created successfully")
-            self.window.destroy()
-        except sqlite3.IntegrityError:
-            messagebox.showerror("Error", "Username or email already exists")
-
-class RecoverPasswordForm:
-    def __init__(self, root, db):
-        self.root = root
-        self.db = db
-        self.window = tk.Toplevel(root)
-        self.window.title("Recover Password")
-        
-        self.frame = tk.Frame(self.window, padx=10, pady=10)
-        self.frame.pack(padx=10, pady=10)
-        
-        self.email_label = tk.Label(self.frame, text="Email:")
-        self.email_label.grid(row=0, column=0, pady=5)
-        self.email_entry = ttk.Entry(self.frame)
-        self.email_entry.grid(row=0, column=1, pady=5)
-        
-        self.recover_button = ttk.Button(self.frame, text="Recover Password", command=self.recover_password)
-        self.recover_button.grid(row=1, columnspan=2, pady=10)
-    
-    def recover_password(self):
-        email = self.email_entry.get()
-        
-        if not email:
-            messagebox.showerror("Error", "Email is required")
-            return
-        
-        user = self.db.get_user_by_email(email)
-        if user:
-            temp_token = self.db.create_temp_token(user["id"])
-            self.send_recovery_email(email, user["username"], temp_token)
-            messagebox.showinfo("Password Recovery", f"Password recovery instructions have been sent to {email}")
-        else:
-            messagebox.showerror("Error", "No account found with that email address")
-    
-    def send_recovery_email(self, email, username, temp_token):
-        """Send a password recovery email."""
-        sender_email = "andrew.barnes@brocodesoftware.com"
-        sender_password = "Qwertyuiop1313!"
-        subject = "Password Recovery Instructions"
-        body = f"Hello {username},\n\nTo reset your password, please use the following temporary password to log in:\n\nTemporary Password: {temp_token}\n\nBest regards,\nBookshelf App Team"
-        
-        msg = MIMEMultipart()
-        msg['From'] = sender_email
-        msg['To'] = email
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'plain'))
-        
-        try:
-            server = smtplib.SMTP('smtp.privateemail.com', 587)  # Replace with your SMTP server and port
-            server.starttls()
-            server.login(sender_email, sender_password)
-            text = msg.as_string()
-            server.sendmail(sender_email, email, text)
-            server.quit()
-            logging.info(f"Password recovery email sent to {email}")
-        except Exception as e:
-            logging.error(f"Failed to send password recovery email to {email}: {e}")
-
-class ResetPasswordForm:
-    def __init__(self, root, db, user_id):
-        self.root = root
-        self.db = db
-        self.user_id = user_id
-        self.window = tk.Toplevel(root)
-        self.window.title("Reset Password")
-        
-        self.frame = tk.Frame(self.window, padx=10, pady=10)
-        self.frame.pack(padx=10, pady=10)
-        
-        self.password_label = tk.Label(self.frame, text="New Password:")
-        self.password_label.grid(row=0, column=0, pady=5)
-        self.password_entry = ttk.Entry(self.frame, show="*")
-        self.password_entry.grid(row=0, column=1, pady=5)
-        
-        self.confirm_password_label = tk.Label(self.frame, text="Confirm Password:")
-        self.confirm_password_label.grid(row=1, column=0, pady=5)
-        self.confirm_password_entry = ttk.Entry(self.frame, show="*")
-        self.confirm_password_entry.grid(row=1, column=1, pady=5)
-        
-        self.reset_button = ttk.Button(self.frame, text="Reset Password", command=self.reset_password)
-        self.reset_button.grid(row=2, columnspan=2, pady=10)
-    
-    def reset_password(self):
-        password = self.password_entry.get()
-        confirm_password = self.confirm_password_entry.get()
-        
-        if not password or not confirm_password:
-            messagebox.showerror("Error", "All fields are required")
-            return
-        
-        if password != confirm_password:
-            messagebox.showerror("Error", "Passwords do not match")
-            return
-        
-        self.db.reset_password(self.user_id, password)
-        messagebox.showinfo("Success", "Password reset successfully")
-        self.window.destroy()
 
 class BookshelfApp:
     def __init__(self, root, user_id):
@@ -288,7 +97,7 @@ class BookshelfApp:
         self.db = Database()
         
         # Initialize panes
-        self.left_pane = LeftPane(self.main_frame, self.db)
+        self.left_pane = LeftPane(self.main_frame, self.db, self.user_id)
         self.middle_pane = MiddlePane(self.main_frame)
         self.middle_pane.db = self.db  # Pass the db instance to MiddlePane
         
@@ -298,13 +107,13 @@ class BookshelfApp:
         self.middle_pane.render_bookshelf(self.books)
     
     def import_goodreads_csv(self):
-        import_goodreads_csv(self.root, self.db, self.books, self.middle_pane)
+        import_goodreads_csv(self.root, self.db, self.books, self.middle_pane, self.user_id)
     
     def search_books(self):
-        search_books(self.search_entry, self.books, self.middle_pane, self.db)
+        search_books(self.search_entry, self.books, self.middle_pane, self.db, self.user_id)
     
     def load_books(self):
-        self.books = self.db.load_books()
+        self.books = self.db.load_books(self.user_id)
     
     def show_about(self):
         messagebox.showinfo("About", "Bookshelf App v1.0")

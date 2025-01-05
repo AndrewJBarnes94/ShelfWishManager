@@ -4,7 +4,7 @@ from tkinter import Toplevel, Listbox, messagebox, ttk
 from io import BytesIO
 import uuid
 
-def search_books(search_entry, books, middle_pane, db):
+def search_books(search_entry, books, middle_pane, db, user_id):
     """Search books using OpenLibrary API and show results in a new window."""
     query = search_entry.get().strip()
     if not query:
@@ -57,6 +57,7 @@ def search_books(search_entry, books, middle_pane, db):
                 cover_image = cover_response.content
             
             new_book = {
+                "user_id": user_id,  # Include user_id
                 "book_id": str(uuid.uuid4()),  # Generate a unique book_id
                 "title": title,
                 "author": author,
