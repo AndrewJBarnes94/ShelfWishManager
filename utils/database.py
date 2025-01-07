@@ -61,6 +61,13 @@ class Database:
                 FOREIGN KEY(user_id) REFERENCES users(id)
             )
         """)
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS yearly_metrics (
+                id INTEGER PRIMARY KEY,
+                year INTEGER,
+                book_count INTEGER
+            )
+        """)
         self.conn.commit()
     
     def save_books(self, books):
@@ -75,7 +82,19 @@ class Database:
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 book.get("id"), book["user_id"], book["book_id"], book["title"], book["author"], book["author_lf"], book["additional_authors"], book["isbn"], book["isbn13"], book["my_rating"], book["average_rating"], book["publisher"], book["binding"], book["number_of_pages"], book["year_published"], book["original_publication_year"], book["date_read"], book["date_added"], book["bookshelves"], book["bookshelves_with_positions"], book["exclusive_shelf"], book["my_review"], book["spoiler"], book["private_notes"], book["read_count"], book["owned_copies"], book["cover"]
-            ))
+             ))
+            self.update_yearly_metrics(book)
+        self.conn.commit()
+    
+    def update_yearly_metrics(self, book):
+        """Update the yearly metrics based on the book's date_read."""
+        if book["date_read"]:
+            year = datetime.datetime.strptime(book["date_read"], "%Y-%m-%d").year
+            self.cursor.execute("""
+                INSERT INTO yearly_metrics (year, book_count)
+                VALUES (?, 1)
+                ON CONFLICT(year) DO UPDATE SET book_count = book_count + 1
+            """, (year,))
         self.conn.commit()
     
     def load_books(self, user_id):
